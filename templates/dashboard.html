@@ -1,0 +1,41 @@
+{% extends 'layout.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block header %}
+  <h1>Welcome, {{ g.user.username }}!</h1>
+{% endblock %}
+
+{% block content %}
+  
+  <!-- Section 1: Form to Add a New Place -->
+  <h2>Add a New Place</h2>
+  <form method="post" action="{{ url_for('add_place') }}">
+    <label for="place_name">Place Name</label>
+    <input name="place_name" id="place_name" required>
+    
+    <label for="tags">Tags (comma-separated, e.g., coffee, books, electronics)</label>
+    <input name="tags" id="tags">
+    
+    <input type="submit" value="Save Place">
+  </form>
+
+  <hr> <!-- A horizontal line to separate sections -->
+
+  <!-- Section 2: Display Saved Places -->
+  <h2>Your Saved Places</h2>
+  <ul>
+    <!-- This loop will display each place the user has saved -->
+    {% for place in places %}
+      <li>
+        <strong>{{ place.place_name }}</strong>
+        <br>
+        <em>Tags: {{ place.tags or 'No tags' }}</em>
+      </li>
+    {% else %}
+      <!-- This message shows if the user hasn't saved any places yet -->
+      <li>You haven't saved any places yet.</li>
+    {% endfor %}
+  </ul>
+
+{% endblock %}
