@@ -1,3 +1,5 @@
+<!-- FILE: templates/dashboard.html -->
+
 {% extends 'layout.html' %}
 
 {% block title %}Dashboard{% endblock %}
@@ -11,31 +13,118 @@
   <!-- Section 1: Form to Add a New Place -->
   <h2>Add a New Place</h2>
   <form method="post" action="{{ url_for('add_place') }}">
+    <label for="search-box">Search for a Place or Address</label>
+    <div>
+      <input id="search-box" type="text" placeholder="Enter a location" style="width: 70%; display: inline-block;">
+      <button type="button" onclick="getCurrentLocation()">Use My Current Location</button>
+    </div>
+    <!-- A container to show search results -->
+    <div id="search-results"></div>
+    
+    <hr>
+    
+    <!-- These fields will be filled automatically -->
     <label for="place_name">Place Name</label>
     <input name="place_name" id="place_name" required>
     
-    <label for="tags">Tags (comma-separated, e.g., coffee, books, electronics)</label>
+    <label for="address">Address</label>
+    <input name="address" id="address" required>
+    
+    <label for="tags">Tags (comma-separated)</label>
     <input name="tags" id="tags">
+
+    <!-- Hidden inputs -->
+    <input type="hidden" id="latitude" name="latitude">
+    <input type="hidden" id="longitude" name="longitude">
     
     <input type="submit" value="Save Place">
   </form>
 
-  <hr> <!-- A horizontal line to separate sections -->
+  <hr>
 
   <!-- Section 2: Display Saved Places -->
   <h2>Your Saved Places</h2>
   <ul>
-    <!-- This loop will display each place the user has saved -->
     {% for place in places %}
       <li>
         <strong>{{ place.place_name }}</strong>
         <br>
+        <small>Address: {{ place.address }}</small>
+        <br>
         <em>Tags: {{ place.tags or 'No tags' }}</em>
       </li>
     {% else %}
-      <!-- This message shows if the user hasn't saved any places yet -->
       <li>You haven't saved any places yet.</li>
     {% endfor %}
   </ul>
 
+{% endblock %}
+
+{% block scripts %}
+<!-- This script block contains the functions -->
+<script>
+  const searchInput = document.getElementById('search-box');
+  const searchResults = document.getElementById('search-results');
+
+  // Listen for typing in the search box
+  searchInput.addEventListener('keyup', () => {
+    const query = searchInput.value;
+    if (query.length < 3) {
+      searchResults.innerHTML = '';
+      return;
+    }
+    // Fetch search suggestions from Nominatim (OpenStreetMap's geocoder)
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}`)
+      .then(response => response.json())
+      .then(data => {
+        displayResults(data);
+      });
+  });
+
+  // Function to display the search results as a list
+  function displayResults(features) {
+    searchResults.innerHTML = '';
+    features.forEach(feature => {
+      const li = document.createElement('li');
+      li.textContent = feature.display_name;
+      li.style.cursor = 'pointer';
+      li.onclick = () => {
+        // Extract a shorter name for the place name field
+        const shortName = feature.display_name.split(',')[0];
+        fillInForm(shortName, feature.display_name, feature.lat, feature.lon);
+        searchResults.innerHTML = '';
+        searchInput.value = feature.display_name;
+      };
+      searchResults.appendChild(li);
+    });
+  }
+
+  // Function to get user's current GPS location
+  function getCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        // Use Nominatim Reverse Geocoding to get address from coordinates
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.display_name) {
+              fillInForm("Current Location", data.display_name, lat, lng);
+            }
+          });
+      });
+    } else {
+      alert("Your browser does not support geolocation.");
+    }
+  }
+
+  // Helper function to fill the form
+  function fillInForm(name, address, lat, lng) {
+    document.getElementById("place_name").value = name;
+    document.getElementById("address").value = address;
+    document.getElementById("latitude").value = lat;
+    document.getElementById("longitude").value = lng;
+  }
+</script>
 {% endblock %}

@@ -26,6 +26,9 @@ class User(db.Model):
 class SavedPlace(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     place_name = db.Column(db.String(100), nullable=False)
+    address = db.Column(db.String(250), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
     tags = db.Column(db.String(200), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
@@ -33,22 +36,15 @@ class SavedPlace(db.Model):
         return f'<SavedPlace {self.place_name}>'
 
 # --- Functions to manage user login state ---
-
 @app.before_request
 def load_logged_in_user():
-    """If a user id is in the session, load the user object from the database."""
     user_id = session.get('user_id')
-
     if user_id is None:
         g.user = None
     else:
-        # Get the user data from the database
         g.user = User.query.get(user_id)
 
 def login_required(view):
-    """
-    A decorator to protect views. Redirects to login page if user is not logged in.
-    """
     @functools.wraps(view)
     def wrapped_view(**kwargs):
         if g.user is None:
@@ -58,10 +54,8 @@ def login_required(view):
 
 
 # --- Web Page Routes ---
-
 @app.route('/')
 def hello():
-    # Now the homepage just renders the layout
     return render_template('layout.html')
 
 @app.route('/register', methods=('GET', 'POST'))
@@ -69,13 +63,10 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
         hashed_password = generate_password_hash(password)
         new_user = User(username=username, password_hash=hashed_password)
-        
         db.session.add(new_user)
         db.session.commit()
-        
         flash('Registration successful! Please log in.')
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -86,33 +77,51 @@ def login():
         username = request.form['username']
         password = request.form['password']
         error = None
-        
         user = User.query.filter_by(username=username).first()
-
         if user is None or not check_password_hash(user.password_hash, password):
             error = 'Incorrect username or password.'
-
         if error is None:
             session.clear()
             session['user_id'] = user.id
-            return redirect(url_for('dashboard')) # Redirect to the new dashboard
-        
+            return redirect(url_for('dashboard'))
         flash(error)
     return render_template('login.html')
 
-# --- NEW: Logout and Dashboard Routes ---
-
 @app.route('/logout')
 def logout():
-    """Clear the current session, including the user_id."""
     session.clear()
     return redirect(url_for('hello'))
 
+# --- THIS IS THE NEW CODE THAT FIXES THE ERROR ---
+@app.route('/add_place', methods=('POST',))
+@login_required
+def add_place():
+    place_name = request.form['place_name']
+    address = request.form['address']
+    latitude = request.form['latitude']
+    longitude = request.form['longitude']
+    tags = request.form['tags']
+    
+    new_place = SavedPlace(
+        place_name=place_name,
+        address=address,
+        latitude=float(latitude),
+        longitude=float(longitude),
+        tags=tags,
+        user_id=g.user.id
+    )
+    
+    db.session.add(new_place)
+    db.session.commit()
+    
+    return redirect(url_for('dashboard'))
+
+# --- THIS IS THE UPDATED DASHBOARD ROUTE ---
 @app.route('/dashboard')
-@login_required  # This protects the page
+@login_required
 def dashboard():
-    """Show the user's personal dashboard."""
-    return render_template('dashboard.html')
+    user_places = SavedPlace.query.filter_by(user_id=g.user.id).all()
+    return render_template('dashboard.html', places=user_places)
 
 
 # --- Run the App ---

@@ -1,8 +1,9 @@
+<!-- FILE: templates/layout.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- The block title allows child templates to set their own page title -->
     <title>{% block title %}{% endblock %} - My Location App</title>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
@@ -10,16 +11,19 @@
         nav a { margin-right: 15px; text-decoration: none; color: #333; }
         .alert { padding: 1rem; background: #ffdddd; border: 1px solid #ff0000; color: #D8000C; border-radius: 5px; margin-bottom: 1rem;}
         .content { padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 2rem 0; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+        #search-results li:hover { background-color: #f0f0f0; }
     </style>
 </head>
 <body>
     <nav>
         <a href="{{ url_for('hello') }}">Home</a>
-        <!-- This logic shows different links if the user is logged in or not -->
         {% if g.user %}
             <a href="{{ url_for('dashboard') }}">Dashboard</a>
             <a href="{{ url_for('logout') }}">Log Out</a>
-            <span>(Logged in as {{ g.user['username'] }})</span>
+            <span>(Logged in as {{ g.user.username }})</span>
         {% else %}
             <a href="{{ url_for('register') }}">Register</a>
             <a href="{{ url_for('login') }}">Log In</a>
@@ -30,14 +34,17 @@
         {% block header %}{% endblock %}
     </header>
 
-    <!-- This code displays any flashed messages (like errors or success notices) -->
     {% for message in get_flashed_messages() %}
         <div class="alert">{{ message }}</div>
     {% endfor %}
     
-    <!-- The main content from child templates will be injected here -->
     <div class="content">
         {% block content %}{% endblock %}
     </div>
+
+    <!-- This new block allows other pages to add their own scripts -->
+    {% block scripts %}{% endblock %}
 </body>
 </html>
+
+
