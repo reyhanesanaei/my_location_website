@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+
+{% block title %}Find Nearby Places{% endblock %}
+
+{% block header %}
+  <h1>Find Nearby Places</h1>
+{% endblock %}
+
+{% block content %}
+  <p>Click the button below to find which of your saved places are nearby (less than a 15-minute drive).</p>
+  
+  <form action="{{ url_for('find_nearby') }}" method="post">
+    <!-- These hidden fields will be filled by JavaScript -->
+    <input type="hidden" id="latitude" name="latitude">
+    <input type="hidden" id="longitude" name="longitude">
+    
+    <!-- The button is disabled until the location is found -->
+    <input type="submit" id="find-button" value="Find Places Near Me" disabled>
+  </form>
+
+  <p id="status">Getting your location, please wait...</p>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // This function runs as soon as the page loads
+  window.onload = function() {
+    if (navigator.geolocation) {
+      // Ask the browser for the user's current position
+      navigator.geolocation.getCurrentPosition(function(position) {
+        // If successful, fill the hidden form fields with the coordinates
+        document.getElementById('latitude').value = position.coords.latitude;
+        document.getElementById('longitude').value = position.coords.longitude;
+        
+        // Enable the button and update the status text
+        document.getElementById('find-button').disabled = false;
+        document.getElementById('status').textContent = 'Location found! Ready to search.';
+      }, function(error) {
+        // Handle errors, like the user denying permission
+        document.getElementById('status').textContent = 'Error: Could not get your location. Please allow location access and refresh the page.';
+        alert('Error: ' + error.message);
+      });
+    } else {
+      // Handle the case where the browser doesn't support geolocation
+      document.getElementById('status').textContent = 'Geolocation is not supported by your browser.';
+    }
+  };
+</script>
+{% endblock %}

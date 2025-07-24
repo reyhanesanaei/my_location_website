@@ -1,3 +1,4 @@
+import requests
 import functools
 from flask import (
     Flask, render_template, request, redirect, url_for, session, flash, g
@@ -123,7 +124,55 @@ def dashboard():
     user_places = SavedPlace.query.filter_by(user_id=g.user.id).all()
     return render_template('dashboard.html', places=user_places)
 
+# --- NEW: Routes for finding nearby places ---
 
+@app.route('/find', methods=('GET', 'POST'))
+@login_required
+def find_nearby():
+    if request.method == 'POST':
+        # Get the user's location from the hidden form fields
+        user_lat = request.form['latitude']
+        user_lon = request.form['longitude']
+
+        # Get all of the user's saved places from the database
+        saved_places = SavedPlace.query.filter_by(user_id=g.user.id).all()
+
+        nearby_places = []
+
+        for place in saved_places:
+            # For each place, ask the OSRM API for the driving time
+
+            # Format the coordinates for the API URL (OSRM needs longitude,latitude)
+            origin = f"{user_lon},{user_lat}"
+            destination = f"{place.longitude},{place.latitude}"
+
+            # Make the API request to the public OSRM server
+            url = f"http://router.project-osrm.org/route/v1/driving/{origin};{destination}?overview=false"
+
+            try:
+                response = requests.get(url)
+                data = response.json()
+
+                if data.get('code') == 'Ok':
+                    # The duration is returned in seconds, so we convert to minutes
+                    duration_minutes = data['routes'][0]['duration'] / 60
+
+                    # Check if the place is less than a 15-minute drive away
+                    if duration_minutes < 15:
+                        nearby_places.append({
+                            'name': place.place_name,
+                            'address': place.address,
+                            'duration': round(duration_minutes) # Round to the nearest minute
+                        })
+            except requests.exceptions.RequestException as e:
+                # Handle cases where the OSRM API might be down or there's a network error
+                print(f"Could not connect to OSRM API: {e}")
+
+        # Show the results page with the list of places we found
+        return render_template('results.html', nearby_places=nearby_places)
+
+    # If it's a GET request, just show the initial "Find" page
+    return render_template('find.html')
 # --- Run the App ---
 if __name__ == '__main__':
     app.run(debug=True, port=8000)

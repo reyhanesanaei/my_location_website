@@ -1,5 +1,3 @@
-<!-- FILE: templates/layout.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,6 +20,7 @@
         <a href="{{ url_for('hello') }}">Home</a>
         {% if g.user %}
             <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('find_nearby') }}">Find Nearby</a> <!-- This is the new link -->
             <a href="{{ url_for('logout') }}">Log Out</a>
             <span>(Logged in as {{ g.user.username }})</span>
         {% else %}
@@ -46,5 +45,4 @@
     {% block scripts %}{% endblock %}
 </body>
 </html>
-
 

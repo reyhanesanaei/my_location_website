@@ -1,0 +1,28 @@
+{% extends 'layout.html' %}
+
+{% block title %}Nearby Results{% endblock %}
+
+{% block header %}
+  <h1>Nearby Places</h1>
+{% endblock %}
+
+{% block content %}
+  <p>Here are your saved places that are less than a 15-minute drive away:</p>
+  
+  <ul>
+    {% for place in nearby_places %}
+      <li>
+        <strong>{{ place.name }}</strong>
+        <br>
+        <small>Address: {{ place.address }}</small>
+        <br>
+        <em>Estimated Driving Time: {{ place.duration }} minutes</em>
+      </li>
+    {% else %}
+      <!-- This message shows if no places were found nearby -->
+      <li>Sorry, none of your saved places are nearby right now.</li>
+    {% endfor %}
+  </ul>
+
+  <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+{% endblock %}
